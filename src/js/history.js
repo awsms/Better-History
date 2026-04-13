@@ -50,6 +50,26 @@ var application = {
     isLoading: false,
 
     /**
+     * @type {number}
+     */
+    searchPageSize: 100,
+
+    /**
+     * @type {string}
+     */
+    activeSearchQuery: '',
+
+    /**
+     * @type {number}
+     */
+    activeSearchLimit: 0,
+
+    /**
+     * @type {boolean}
+     */
+    activeSearchHasMore: false,
+
+    /**
      * @type {boolean}
      */
     autoFocus: false,
@@ -191,6 +211,10 @@ var application = {
         });
 
         $('#search_input').focus();
+
+        $(window).on('scroll', function(){
+            $this.handleScroll();
+        });
 
         this.historyGetDay(this.today);
     },
@@ -365,8 +389,11 @@ var application = {
      */
     historySearch: function(query){
         this.isSearching = true;
+        this.activeSearchQuery = query;
+        this.activeSearchLimit = this.searchPageSize;
+        this.activeSearchHasMore = false;
         this.clearContent();
-        this.historyQuery(query, new Date(1970, 1, 1, 0, 0, 0, 0), new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 23, 59, 59), 0);
+        this.historyQuery(query, new Date(1970, 1, 1, 0, 0, 0, 0), new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 23, 59, 59), this.activeSearchLimit);
     },
 
     /**
@@ -377,6 +404,9 @@ var application = {
      */
     historyGetDay: function(day, nb_entries){
         nb_entries = nb_entries === undefined ? 0 : parseInt(nb_entries, 10) || 0;
+        this.activeSearchQuery = '';
+        this.activeSearchLimit = 0;
+        this.activeSearchHasMore = false;
 
         if(day > this.now){
             return;
@@ -406,8 +436,27 @@ var application = {
         }
 
         chrome.history.search(query, function(results){
-            $this.historyCallback(results, start, end);
+            $this.historyCallback(results, start, end, search, nb_entries);
         });
+    },
+
+    /**
+     * Load more search results when the user reaches the bottom.
+     */
+    handleScroll: function(){
+        if(!this.isSearching || this.isLoading || !this.activeSearchHasMore){
+            return;
+        }
+
+        if($(window).scrollTop() + $(window).height() >= $(document).height() - 300){
+            this.activeSearchLimit += this.searchPageSize;
+            this.historyQuery(
+                this.activeSearchQuery,
+                new Date(1970, 1, 1, 0, 0, 0, 0),
+                new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 23, 59, 59),
+                this.activeSearchLimit
+            );
+        }
     },
 
     /**
@@ -416,11 +465,19 @@ var application = {
      * @param {chrome.history.HistoryItem[]} results
      * @param {Date} start
      * @param {Date} end
+     * @param {string} search
+     * @param {int} nb_entries
      * @returns {void}
      */
-    historyCallback: function(results, start, end){
+    historyCallback: function(results, start, end, search, nb_entries){
         let items = {};
         let count = 0;
+
+        if(this.isSearching && search === this.activeSearchQuery && nb_entries > 0){
+            this.activeSearchHasMore = results.length >= nb_entries;
+        } else {
+            this.activeSearchHasMore = false;
+        }
 
         $.each(results, function(k, v){
             let item_date = new Date(v.lastVisitTime);
@@ -668,6 +725,9 @@ var application = {
      */
     clearContent: function(){
         $('.wrapper .history-container .content').html('');
+        if(!this.isSearching){
+            this.activeSearchHasMore = false;
+        }
     },
 
     /**
