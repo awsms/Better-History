@@ -1,5 +1,7 @@
 var application = {
 
+    browserApi: globalThis.chrome || globalThis.browser,
+
     KEYS: {
         A: 65
     },
@@ -105,7 +107,7 @@ var application = {
         this.i18n();
         this.today = new Date(this.now.getFullYear(), this.now.getMonth(), this.now.getDate(), 0, 0, 0, 0);
 
-        chrome.storage.sync.get(function(items){
+        this.browserApi.storage.sync.get(function(items){
             $this.options.use24HoursFormat = items.use24HoursFormat === undefined ? true : items.use24HoursFormat;
             $this.options.timeBeforeTitle = items.timeBeforeTitle === undefined ? false : items.timeBeforeTitle;
             $this.options.popupNbItems = items.popupNbItems === undefined ? 10 : items.popupNbItems;
@@ -127,7 +129,7 @@ var application = {
 
         $('#go_history').on('click', function(e){
             e.preventDefault();
-            chrome.tabs.create({url: 'chrome://history'});
+            application.openDashboard();
         });
     },
 
@@ -141,7 +143,7 @@ var application = {
 
         if($(window).width() == 360)
         {
-            chrome.tabs.create({url: 'chrome://history'});
+            this.openDashboard();
         }
 
         $('#go_options').on('click', function(){
@@ -316,7 +318,7 @@ var application = {
         this.calendarAvailabilityCache[monthKey] = cached;
 
         let fetchBatch = function(batchEndTime){
-            chrome.history.search({
+            $this.browserApi.history.search({
                 text: '',
                 startTime: monthStart.valueOf(),
                 endTime: batchEndTime,
@@ -435,7 +437,7 @@ var application = {
             query.maxResults = nb_entries;
         }
 
-        chrome.history.search(query, function(results){
+        this.browserApi.history.search(query, function(results){
             $this.historyCallback(results, start, end, search, nb_entries);
         });
     },
@@ -512,12 +514,12 @@ var application = {
         this.clearContent();
 
         if(this.isSearching){
-            this.insertContent('<h1>' + chrome.i18n.getMessage('search_display') + ' "' + $('#search_input').val() + '"</h1>');
+            this.insertContent('<h1>' + this.browserApi.i18n.getMessage('search_display') + ' "' + $('#search_input').val() + '"</h1>');
 
             if(count > 0){
-                this.insertContent('<div class="search-result">' + chrome.i18n.getMessage('search_found', count.toString()) + '</div>');
+                this.insertContent('<div class="search-result">' + this.browserApi.i18n.getMessage('search_found', count.toString()) + '</div>');
             } else {
-                this.insertContent('<div class="search-result">' + chrome.i18n.getMessage('search_empty') + '</div>');
+                this.insertContent('<div class="search-result">' + this.browserApi.i18n.getMessage('search_empty') + '</div>');
                 this.isLoading = false;
                 return;
             }
@@ -532,14 +534,14 @@ var application = {
                 html+= '<div class="history-day" id="' + k + '">';
             }
 
-            html+= '<h2>' + moment(new Date(parseFloat(k.toString()))).format(chrome.i18n.getMessage('date_format')) + '</h2>';
+            html+= '<h2>' + moment(new Date(parseFloat(k.toString()))).format($this.browserApi.i18n.getMessage('date_format')) + '</h2>';
 
             if(Object.keys(day).length > 0){
                 $.each(day, function(z, entry){
                     html+= $this.historyEntryFormat(entry);
                 });
             } else {
-                html+= '<div class="entry-empty">' + chrome.i18n.getMessage('history_date_empty') + '</div>';
+                html+= '<div class="entry-empty">' + $this.browserApi.i18n.getMessage('history_date_empty') + '</div>';
             }
 
             if($('.wrapper .history-container #' + k).length < 1){
@@ -550,6 +552,7 @@ var application = {
         });
 
         this.historyEntriesBind();
+        this.bindFaviconFallbacks();
         this.isLoading = false;
     },
 
@@ -567,7 +570,7 @@ var application = {
             html+= '<div class="entry-time">' + moment(new Date(entry.lastVisitTime)).format(this.options.use24HoursFormat ? 'HH:mm' : 'hh:mm A') + '</div>';
         }
 
-        html+= '<img class="entry-icon" src="' + this.getFavicon(entry.url) + '" />';
+        html+= '<img class="entry-icon" src="' + this.getFavicon(entry.url) + '" data-fallback-icon="' + this.getFallbackFavicon(entry.url) + '" />';
         html+= '<div class="entry-link"><a href="' + this.escape(entry.url) + '" target="_blank" title="' + this.escape(entry.url) + '">' + this.escape(entry.title ? entry.title : entry.url) + '</a></div>';
 
         if(!this.options.timeBeforeTitle)
@@ -578,7 +581,7 @@ var application = {
         if(this.options.showVisitCount && entry.visitCount && entry.visitCount > 1){
             html+= '<div class="entry-visit-count">' + entry.visitCount + '</div>';
         }
-        html+= '<a class="entry-remove" title="' + chrome.i18n.getMessage('history_remove_single') + '"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15" width="12px" height="12px" slot="before"><path d="M14.1016 1.60156L8.20312 7.5L14.1016 13.3984L13.3984 14.1016L7.5 8.20312L1.60156 14.1016L0.898438 13.3984L6.79688 7.5L0.898438 1.60156L1.60156 0.898438L7.5 6.79688L13.3984 0.898438L14.1016 1.60156Z"></path></svg></a>';
+        html+= '<a class="entry-remove" title="' + this.browserApi.i18n.getMessage('history_remove_single') + '"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 15 15" width="12px" height="12px" slot="before"><path d="M14.1016 1.60156L8.20312 7.5L14.1016 13.3984L13.3984 14.1016L7.5 8.20312L1.60156 14.1016L0.898438 13.3984L6.79688 7.5L0.898438 1.60156L1.60156 0.898438L7.5 6.79688L13.3984 0.898438L14.1016 1.60156Z"></path></svg></a>';
         html+= '</div>';
 
         return html;
@@ -592,15 +595,32 @@ var application = {
      */
     historyEntryDelete: function(url, sender){
         let $this = this;
-        chrome.history.deleteUrl({ url: url }, function(){
+        this.browserApi.history.deleteUrl({ url: url }, function(){
             let container = sender.parent().parent();
             sender.parent().remove();
 
             if($('.entry', container).length === 0){
-                $this.insertContent('<div class="entry-empty">' + chrome.i18n.getMessage('history_date_empty') + '</div>', container);
+                $this.insertContent('<div class="entry-empty">' + $this.browserApi.i18n.getMessage('history_date_empty') + '</div>', container);
             }
 
             $this.updateConfirm();
+        });
+    },
+
+    bindFaviconFallbacks: function(){
+        let defaultIcon = this.getDefaultFavicon();
+
+        $('.history-container .entry-icon').off('error').on('error', function(){
+            let fallbackIcon = $(this).attr('data-fallback-icon');
+
+            if(fallbackIcon && $(this).attr('src') !== fallbackIcon){
+                $(this).attr('src', fallbackIcon);
+                return;
+            }
+
+            if($(this).attr('src') !== defaultIcon){
+                $(this).attr('src', defaultIcon);
+            }
         });
     },
 
@@ -734,13 +754,14 @@ var application = {
      * Replace i18n item in html
      */
     i18n: function(){
+        let browserApi = this.browserApi;
         $('[i18n]').each(function(){
             let i18n = $(this).attr('i18n');
             if(i18n.indexOf(':') >= 0){
                 let tmp = i18n.split(':');
-                $(this).attr(tmp[0], chrome.i18n.getMessage(tmp[1]));
+                $(this).attr(tmp[0], browserApi.i18n.getMessage(tmp[1]));
             } else {
-                $(this).html(chrome.i18n.getMessage(i18n));
+                $(this).html(browserApi.i18n.getMessage(i18n));
             }
         });
     },
@@ -771,7 +792,38 @@ var application = {
      * @returns {string}
      */
     getCurrentLocale: function(){
-        return chrome.i18n.getMessage('language');
+        return this.browserApi.i18n.getMessage('language');
+    },
+
+    isChromiumBased: function(){
+        let userAgent = navigator.userAgent || '';
+        let brands = navigator.userAgentData && Array.isArray(navigator.userAgentData.brands)
+            ? navigator.userAgentData.brands.map(function(brand){
+                return brand.brand;
+            }).join(' ')
+            : '';
+
+        if(/Firefox\//.test(userAgent)){
+            return false;
+        }
+
+        return /(Chrome|Chromium|Edg|OPR|Brave)/.test(userAgent + ' ' + brands);
+    },
+
+    getDashboardUrl: function(){
+        if(this.isChromiumBased()){
+            return 'chrome://history';
+        }
+
+        return this.browserApi.runtime.getURL('history.html');
+    },
+
+    openDashboard: function(){
+        this.browserApi.tabs.create({url: this.getDashboardUrl()});
+    },
+
+    getDefaultFavicon: function(){
+        return this.browserApi.runtime.getURL('assets/img/icon_16.png');
     },
 
     /**
@@ -782,7 +834,23 @@ var application = {
      * @returns {string}
      */
     getFavicon: function(url){
-        return "chrome-extension://" + chrome.runtime.id + "/_favicon/?size=32&pageUrl=" + encodeURIComponent(this.escape(url));
+        if(this.isChromiumBased()){
+            return this.browserApi.runtime.getURL('_favicon/') + '?size=32&pageUrl=' + encodeURIComponent(url);
+        }
+
+        return this.getFallbackFavicon(url);
+    },
+
+    getFallbackFavicon: function(url){
+        try {
+            let parsedUrl = new URL(url);
+
+            if(parsedUrl.protocol === 'http:' || parsedUrl.protocol === 'https:'){
+                return parsedUrl.origin + '/favicon.ico';
+            }
+        } catch (e) {}
+
+        return this.getDefaultFavicon();
     },
 
     /**
@@ -818,7 +886,7 @@ var application = {
      */
     saveOptions: function(){
         let $this = this;
-        chrome.storage.sync.set({
+        this.browserApi.storage.sync.set({
             use24HoursFormat: $('#options_field_24hoursformat').prop('checked'),
             timeBeforeTitle: $('#options_field_displaytitlebeforetime').prop('checked'),
             popupNbItems: $('#options_field_popupnbitems').val(),
