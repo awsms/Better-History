@@ -15,7 +15,7 @@
     "host_permissions": ["file:///*", "*://*/*"],
     "browser_specific_settings": {
         "gecko": {
-            "id": "dragon-better-history@dragonofmercy.github.io"
+            "id": "dragon-better-history@awsms.github.io"
         }
     },
     "background": {
@@ -26,7 +26,7 @@
             "suggested_key": {
                 "default": "Ctrl+Shift+H"
             },
-            "description": "Open Dragon Better History"
+            "description": "Open Better History"
         }
     },
     "action": {

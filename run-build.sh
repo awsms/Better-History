@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Rebuild script for Dragon-Better-History
+# Rebuild script for Better-History
 #
 # Outputs:
 #   build/assets/application.css
@@ -53,7 +53,7 @@ run_lessc() {
   fi
 }
 
-echo "==> Rebuilding Dragon-Better-History"
+echo "==> Rebuilding Better-History"
 echo "Project root: $ROOT_DIR"
 
 if [[ ! -f "$SRC_CSS" ]]; then

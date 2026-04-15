@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Watch + rebuild script for Dragon-Better-History
+# Watch + rebuild script for Better-History
 #
 # Rebuilds only when source inputs change (fast fingerprint: mtime+size):
 #   - src/css/*.less

@@ -1,4 +1,4 @@
-# Dragon-Better-History
+# Better-History
 
 Better history for Chromium & Firefox-based browsers.
 
@@ -60,5 +60,5 @@ Note: If you add new JavaScript files, update `src/js/_merge.txt` so they are in
 ## Install on Firefox-based browsers
 
 1) Run `./run-build-firefox.sh`
-2) Manually install `build-firefox/web-ext-artifacts/dragon_better_history-1.34.zip` in Firefox
+2) Manually install `build-firefox/web-ext-artifacts/better_history-1.34.zip` in Firefox
 3) Manage or change the shortcut in `about:addons` -> the gear icon -> **Manage Extension Shortcuts**
