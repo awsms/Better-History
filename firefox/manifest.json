@@ -15,7 +15,7 @@
     "host_permissions": ["file:///*", "*://*/*"],
     "browser_specific_settings": {
         "gecko": {
-            "id": "dragon-better-history@awsms.github.io"
+            "id": "better-history@awsms.github.io"
         }
     },
     "background": {
