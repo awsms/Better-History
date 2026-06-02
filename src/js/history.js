@@ -72,6 +72,26 @@ var application = {
     activeSearchHasMore: false,
 
     /**
+     * @type {Date|null}
+     */
+    activeDayStart: null,
+
+    /**
+     * @type {Date|null}
+     */
+    activeDayEnd: null,
+
+    /**
+     * @type {number}
+     */
+    activeDayLimit: 0,
+
+    /**
+     * @type {boolean}
+     */
+    activeDayHasMore: false,
+
+    /**
      * @type {boolean}
      */
     autoFocus: false,
@@ -409,6 +429,10 @@ var application = {
         this.activeSearchQuery = '';
         this.activeSearchLimit = 0;
         this.activeSearchHasMore = false;
+        this.activeDayStart = null;
+        this.activeDayEnd = null;
+        this.activeDayLimit = 0;
+        this.activeDayHasMore = false;
 
         if(day > this.now){
             return;
@@ -416,9 +440,14 @@ var application = {
 
         let date_start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 0, 0, 0, 0);
         let date_end = new Date(day.getFullYear(), day.getMonth(), day.getDate(), 23, 59, 59);
+        let limit = nb_entries > 0 ? nb_entries : this.searchPageSize;
+
+        this.activeDayStart = date_start;
+        this.activeDayEnd = date_end;
+        this.activeDayLimit = limit;
 
         this.clearContent();
-        this.historyQuery('', date_start, date_end, nb_entries);
+        this.historyQuery('', date_start, date_end, limit);
     },
 
     /**
@@ -446,18 +475,23 @@ var application = {
      * Load more search results when the user reaches the bottom.
      */
     handleScroll: function(){
-        if(!this.isSearching || this.isLoading || !this.activeSearchHasMore){
+        if(this.isLoading){
             return;
         }
 
         if($(window).scrollTop() + $(window).height() >= $(document).height() - 300){
-            this.activeSearchLimit += this.searchPageSize;
-            this.historyQuery(
-                this.activeSearchQuery,
-                new Date(1970, 1, 1, 0, 0, 0, 0),
-                new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 23, 59, 59),
-                this.activeSearchLimit
-            );
+            if(this.isSearching && this.activeSearchHasMore){
+                this.activeSearchLimit += this.searchPageSize;
+                this.historyQuery(
+                    this.activeSearchQuery,
+                    new Date(1970, 1, 1, 0, 0, 0, 0),
+                    new Date(this.today.getFullYear(), this.today.getMonth(), this.today.getDate(), 23, 59, 59),
+                    this.activeSearchLimit
+                );
+            } else if(!this.isSearching && this.activeDayHasMore && this.activeDayStart && this.activeDayEnd){
+                this.activeDayLimit += this.searchPageSize;
+                this.historyQuery('', this.activeDayStart, this.activeDayEnd, this.activeDayLimit);
+            }
         }
     },
 
@@ -477,8 +511,11 @@ var application = {
 
         if(this.isSearching && search === this.activeSearchQuery && nb_entries > 0){
             this.activeSearchHasMore = results.length >= nb_entries;
+        } else if(!this.isSearching && search === '' && nb_entries > 0){
+            this.activeDayHasMore = results.length >= nb_entries;
         } else {
             this.activeSearchHasMore = false;
+            this.activeDayHasMore = false;
         }
 
         $.each(results, function(k, v){
